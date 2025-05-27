@@ -65,20 +65,30 @@ export class VoiceChatFactory extends AbstractVoiceChat<VoiceChatConfig> {
     this.voiceChat.unmute();
   }
 
-  public async setDeviceId(deviceId: string) {
-    await this.voiceChat.setDeviceId(deviceId);
+  public async setDeviceId(deviceId: ConstrainDOMString) {
+    return this.voiceChat.setDeviceId(deviceId);
   }
 
-  static createLiveKitVoiceChat(voiceChatConfig: LivekitVoiceChatConfig) {
+  static createLiveKitVoiceChat(
+    onVoiceChatDeviceChanged: (deviceId: string | undefined) => void,
+    voiceChatConfig: LivekitVoiceChatConfig
+  ) {
     return new this({
-      voiceChatInstance: new LivekitVoiceChat(),
+      voiceChatInstance: new LivekitVoiceChat({
+        onVoiceChatDeviceChanged,
+      }),
       initialConfig: voiceChatConfig,
     });
   }
 
-  static createWebSocketVoiceChat(voiceChatConfig: WebSocketVoiceChatConfig) {
+  static createWebSocketVoiceChat(
+    onVoiceChatDeviceChanged: (deviceId: string | undefined) => void,
+    voiceChatConfig: WebSocketVoiceChatConfig
+  ) {
     return new this({
-      voiceChatInstance: new WebSocketVoiceChat(),
+      voiceChatInstance: new WebSocketVoiceChat({
+        onVoiceChatDeviceChanged,
+      }),
       initialConfig: voiceChatConfig,
     });
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useAudioInputDevice } from './useAudioInputDevice';
+import { StreamingEvents } from '../src';
 
 import { useStreamingAvatarContext } from './context';
 
@@ -12,35 +12,35 @@ export const useVoiceChat = () => {
     setIsVoiceChatActive,
     isVoiceChatLoading,
     setIsVoiceChatLoading,
-    audioInputDeviceId,
-    audioInputDevices,
-    audioInputDevice,
-    setAudioInputDevice,
-    subscribeOnAudioDeviceChange,
-    unsubscribeOnAudioDeviceChange,
-    initDevices,
+    voiceChatDeviceId,
+    setVoiceChatDeviceId,
   } = useStreamingAvatarContext();
 
   const startVoiceChat = useCallback(
-    async (isInputAudioMuted?: boolean) => {
+    async (isInputAudioMuted?: boolean, deviceId?: string) => {
       if (!avatarRef.current) return;
       setIsVoiceChatLoading(true);
-      const res = await initDevices();
-      console.log('res', res);
-      if (!res) {
-        setIsVoiceChatLoading(false);
-        return;
-      }
 
       await avatarRef.current?.startVoiceChat({
         isInputAudioMuted,
-        deviceId: { exact: res },
+        deviceId: deviceId,
+      });
+      const initialDeviceId = await avatarRef.current.getVoiceChatDeviceId();
+      setVoiceChatDeviceId(initialDeviceId);
+      avatarRef.current.on(StreamingEvents.VOICE_CHAT_DEVICE_CHANGED, ({ detail }) => {
+        setVoiceChatDeviceId(detail.deviceId);
       });
       setIsVoiceChatLoading(false);
       setIsVoiceChatActive(true);
       setIsMuted(!!isInputAudioMuted);
     },
-    [avatarRef, setIsMuted, setIsVoiceChatActive, setIsVoiceChatLoading]
+    [
+      avatarRef,
+      setIsMuted,
+      setIsVoiceChatActive,
+      setIsVoiceChatLoading,
+      setVoiceChatDeviceId,
+    ]
   );
 
   const stopVoiceChat = useCallback(() => {
@@ -62,6 +62,14 @@ export const useVoiceChat = () => {
     setIsMuted(false);
   }, [avatarRef, setIsMuted]);
 
+  const setVoiceChatDevice = useCallback(
+    async (deviceId: ConstrainDOMString): Promise<boolean> => {
+      if (!avatarRef.current) return false;
+      return avatarRef.current.setVoiceChatDeviceId(deviceId);
+    },
+    [avatarRef]
+  );
+
   return {
     startVoiceChat,
     stopVoiceChat,
@@ -70,10 +78,7 @@ export const useVoiceChat = () => {
     isMuted,
     isVoiceChatActive,
     isVoiceChatLoading,
-    setVoiceChatDevice: setAudioInputDevice,
-    audioInputDevices,
-    voiceChatDevice: audioInputDevice,
-    subscribeOnAudioDeviceChange,
-    unsubscribeOnAudioDeviceChange,
+    voiceChatDeviceId,
+    setVoiceChatDeviceId: setVoiceChatDevice,
   };
 };

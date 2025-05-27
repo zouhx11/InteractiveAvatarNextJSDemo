@@ -113,6 +113,7 @@ export enum StreamingEvents {
   STREAM_READY = 'stream_ready',
   STREAM_DISCONNECTED = 'stream_disconnected',
   CONNECTION_QUALITY_CHANGED = 'connection_quality_changed',
+  VOICE_CHAT_DEVICE_CHANGED = 'voice_chat_device_changed',
 }
 export type EventHandler = (...args: any[]) => void;
 export interface EventData {
@@ -144,6 +145,11 @@ export interface UserTalkingMessageEvent extends EventData {
 
 export interface UserTalkingEndEvent extends EventData {
   type: StreamingEvents.USER_END_MESSAGE;
+}
+
+export interface VoiceChatDeviceChangedEvent extends EventData {
+  type: StreamingEvents.VOICE_CHAT_DEVICE_CHANGED;
+  deviceId: string;
 }
 
 type StreamingEventTypes =
@@ -239,12 +245,21 @@ class StreamingAvatar {
     return this.voiceChat?.getDeviceId();
   }
 
-  public async setVoiceChatDeviceId(deviceId: ConstrainDOMString) {
-    await this.voiceChat?.setDeviceId(deviceId);
+  public async setVoiceChatDeviceId(deviceId: ConstrainDOMString): Promise<boolean> {
+    return (await this.voiceChat?.setDeviceId(deviceId)) ?? false;
   }
 
-  public async createStartAvatar(requestData: StartAvatarRequest): Promise<any> {
+  public async createStartAvatar(
+    requestData: StartAvatarRequest
+  ): Promise<StartAvatarResponse> {
     const sessionInfo = await this.newSession(requestData);
+    return this.startAvatar(requestData, sessionInfo);
+  }
+
+  public async startAvatar(
+    requestData: StartAvatarRequest,
+    sessionInfo: StartAvatarResponse
+  ): Promise<StartAvatarResponse> {
     this.sessionId = sessionInfo.session_id;
     this.isLiveKitTransport =
       requestData.voiceChatTransport === VoiceChatTransport.LIVEKIT;
@@ -443,18 +458,34 @@ class StreamingAvatar {
         return;
       }
 
-      this.voiceChat = VoiceChatFactory.createWebSocketVoiceChat({
-        webSocket: this.webSocket,
-        audioRawFrame: this.audioRawFrame,
-      });
+      this.voiceChat = VoiceChatFactory.createWebSocketVoiceChat(
+        (deviceId: string | undefined) => {
+          this.emit(StreamingEvents.VOICE_CHAT_DEVICE_CHANGED, {
+            deviceId,
+            type: StreamingEvents.VOICE_CHAT_DEVICE_CHANGED,
+          });
+        },
+        {
+          webSocket: this.webSocket,
+          audioRawFrame: this.audioRawFrame,
+        }
+      );
     } else {
       if (!this.room) {
         return;
       }
 
-      this.voiceChat = VoiceChatFactory.createLiveKitVoiceChat({
-        room: this.room,
-      });
+      this.voiceChat = VoiceChatFactory.createLiveKitVoiceChat(
+        (deviceId: string | undefined) => {
+          this.emit(StreamingEvents.VOICE_CHAT_DEVICE_CHANGED, {
+            deviceId,
+            type: StreamingEvents.VOICE_CHAT_DEVICE_CHANGED,
+          });
+        },
+        {
+          room: this.room,
+        }
+      );
     }
   }
 

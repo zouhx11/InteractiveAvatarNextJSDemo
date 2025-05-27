@@ -5,7 +5,7 @@ import { Button } from '../Button';
 import { LoadingIcon, MicIcon, MicOffIcon } from '../Icons';
 import { useConversationState } from '../logic/useConversationState';
 import { Select } from '../Select';
-import { useMount, useUnmount } from 'ahooks';
+import { useAudioInputDevices } from '../logic/useAudioInputDevices';
 
 export const AudioInput: React.FC = () => {
   const {
@@ -13,13 +13,11 @@ export const AudioInput: React.FC = () => {
     unmuteInputAudio,
     isMuted,
     isVoiceChatLoading,
-    subscribeOnAudioDeviceChange,
-    unsubscribeOnAudioDeviceChange,
-    audioInputDevices,
-    voiceChatDevice,
-    setVoiceChatDevice,
+    voiceChatDeviceId,
+    setVoiceChatDeviceId,
   } = useVoiceChat();
   const { isUserTalking } = useConversationState();
+  const { audioInputDevices } = useAudioInputDevices();
 
   const handleMuteClick = () => {
     if (isMuted) {
@@ -28,14 +26,6 @@ export const AudioInput: React.FC = () => {
       muteInputAudio();
     }
   };
-
-  useMount(() => {
-    subscribeOnAudioDeviceChange();
-  });
-
-  useUnmount(() => {
-    unsubscribeOnAudioDeviceChange();
-  });
 
   return (
     <div className='flex flex-row items-center gap-4 min-w-[300px]'>
@@ -58,9 +48,9 @@ export const AudioInput: React.FC = () => {
       <Select
         options={audioInputDevices}
         renderOption={(option) => option.label}
-        onSelect={(option) => setVoiceChatDevice(option)}
-        isSelected={(option) => voiceChatDevice?.deviceId === option.deviceId}
-        value={voiceChatDevice?.label}
+        onSelect={(option) => setVoiceChatDeviceId(option.deviceId)}
+        isSelected={(option) => voiceChatDeviceId === option.deviceId}
+        value={audioInputDevices.find((device) => device.deviceId === voiceChatDeviceId)?.label}
       />
     </div>
   );

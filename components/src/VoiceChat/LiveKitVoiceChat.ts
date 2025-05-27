@@ -10,10 +10,6 @@ export class LivekitVoiceChat extends AbstractVoiceChatImplementation<LivekitVoi
   private room: Room | null = null;
   private track: LocalAudioTrack | null = null;
 
-  public getDeviceId(): Promise<string | undefined> {
-    return this.track?.getDeviceId() ?? Promise.resolve(undefined);
-  }
-
   protected async _startVoiceChat(voiceChatConfig: LivekitVoiceChatConfig) {
     this.room = voiceChatConfig.room;
     this.track = await createLocalAudioTrack({
@@ -25,7 +21,7 @@ export class LivekitVoiceChat extends AbstractVoiceChatImplementation<LivekitVoi
     await this.room.localParticipant.publishTrack(this.track);
     if (!voiceChatConfig.config?.defaultMuted) {
       this.unmute();
-    }else{
+    } else {
       this.mute();
     }
     await sleep(4000);
@@ -49,6 +45,10 @@ export class LivekitVoiceChat extends AbstractVoiceChatImplementation<LivekitVoi
     if (this.track) {
       await this.track.setDeviceId(deviceId);
     }
+  }
+
+  protected _getDeviceId(): Promise<string | undefined> {
+    return this.track?.getDeviceId() || Promise.resolve(undefined);
   }
 
   protected _mute(): void {

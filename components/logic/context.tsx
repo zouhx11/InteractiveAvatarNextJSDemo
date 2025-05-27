@@ -4,10 +4,6 @@ import StreamingAvatar, {
   UserTalkingMessageEvent,
 } from '../src';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ExtendedMediaDeviceInfoInterface,
-  useAudioInputDevice,
-} from './useAudioInputDevice';
 
 export enum StreamingAvatarSessionState {
   INACTIVE = 'inactive',
@@ -36,6 +32,8 @@ type StreamingAvatarContextProps = {
   setIsVoiceChatLoading: (isVoiceChatLoading: boolean) => void;
   isVoiceChatActive: boolean;
   setIsVoiceChatActive: (isVoiceChatActive: boolean) => void;
+  voiceChatDeviceId: string | undefined;
+  setVoiceChatDeviceId: (voiceChatDeviceId: string | undefined) => void;
 
   sessionState: StreamingAvatarSessionState;
   setSessionState: (sessionState: StreamingAvatarSessionState) => void;
@@ -61,14 +59,6 @@ type StreamingAvatarContextProps = {
 
   connectionQuality: ConnectionQuality;
   setConnectionQuality: (connectionQuality: ConnectionQuality) => void;
-
-  audioInputDevices: ExtendedMediaDeviceInfoInterface[];
-  setAudioInputDevice: (audioInputDevice: ExtendedMediaDeviceInfoInterface) => void;
-  audioInputDevice: ExtendedMediaDeviceInfoInterface | undefined;
-  audioInputDeviceId: string | undefined;
-  initDevices: () => Promise<string | null>;
-  subscribeOnAudioDeviceChange: () => void;
-  unsubscribeOnAudioDeviceChange: () => void;
 };
 
 const StreamingAvatarContext = React.createContext<StreamingAvatarContextProps>({
@@ -96,13 +86,8 @@ const StreamingAvatarContext = React.createContext<StreamingAvatarContextProps>(
   setIsAvatarTalking: () => {},
   connectionQuality: ConnectionQuality.UNKNOWN,
   setConnectionQuality: () => {},
-  audioInputDevices: [],
-  setAudioInputDevice: () => {},
-  audioInputDevice: undefined,
-  audioInputDeviceId: undefined,
-  initDevices: () => Promise.resolve(null),
-  subscribeOnAudioDeviceChange: () => {},
-  unsubscribeOnAudioDeviceChange: () => {},
+  voiceChatDeviceId: undefined,
+  setVoiceChatDeviceId: () => {},
 });
 
 const useStreamingAvatarSessionState = () => {
@@ -121,6 +106,7 @@ const useStreamingAvatarVoiceChatState = () => {
   const [isMuted, setIsMuted] = useState(true);
   const [isVoiceChatLoading, setIsVoiceChatLoading] = useState(false);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
+  const [voiceChatDeviceId, setVoiceChatDeviceId] = useState<string | undefined>(undefined);
 
   return {
     isMuted,
@@ -129,6 +115,8 @@ const useStreamingAvatarVoiceChatState = () => {
     setIsVoiceChatLoading,
     isVoiceChatActive,
     setIsVoiceChatActive,
+    voiceChatDeviceId,
+    setVoiceChatDeviceId,
   };
 };
 
@@ -238,14 +226,6 @@ export const StreamingAvatarProvider = ({
   const listeningState = useStreamingAvatarListeningState();
   const talkingState = useStreamingAvatarTalkingState();
   const connectionQualityState = useStreamingAvatarConnectionQualityState();
-  const audioInputDeviceState = useAudioInputDevice();
-
-  useEffect(() => {
-    if (!avatarRef.current || !audioInputDeviceState.audioInputDeviceId) return;
-    avatarRef.current.setVoiceChatDeviceId({
-      exact: audioInputDeviceState.audioInputDeviceId,
-    });
-  }, [audioInputDeviceState.audioInputDeviceId, avatarRef]);
 
   return (
     <StreamingAvatarContext.Provider
@@ -258,7 +238,6 @@ export const StreamingAvatarProvider = ({
         ...listeningState,
         ...talkingState,
         ...connectionQualityState,
-        ...audioInputDeviceState,
       }}
     >
       {children}
